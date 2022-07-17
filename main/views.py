@@ -55,3 +55,91 @@ class Onsale(APIView):
         ser = ProductSerializer(product, many=True)
         return Response(ser.data)
 
+
+class ProductPk(APIView):
+    def get(request, pk):
+        product = Product.objects.get(id=pk)
+        ser = ProductSerializer(product)
+        return Response(ser.data)
+
+class ProductView(APIView):
+    def get(self, request):
+        product = Product.objects.all()
+        ser = ProductSerializer(product, many=True)
+        return Response(ser.data)
+    
+    def post(self, request, pk):
+        a = Production.objects.get(id=pk)
+        quantity = int(request.POST.get('quantity'))
+        if quantity > a.quantity:
+            return Response('error quantity')
+        else:
+            b = a.quantity - quantity
+            a.quantity = b
+            print(a.quantity)
+            a.save()
+            myquantity = quantity
+        price = float(request.POST.get('price'))
+        discount_price = int(request.POST.get('discount'))
+        if discount_price > 0:
+            myprice = price - (price * discount_price / 100)
+            b = Product.objects.create(product_id=a.id, price=myprice,quantity=myquantity, discount_price=discount_price)
+            ser = ProductSerializer(b)
+            return Response(ser.data)
+        else:
+            Product.objects.create(product_id=a.id, price=price,quantity=myquantity)
+            return Response(ser.data)
+
+class ProductionView(APIView):
+    def post(request):
+        category = request.POST.get('category')
+        image = request.FILES('image')
+        image2 = request.FILES('image2')
+        image3 = request.FILES('image3')
+        image4 = request.FILES('image4')
+        image5 = request.FILES('image5')
+        name = request.POST.get('name')
+        quantity = request.POST.get('quantity')
+        sku = request.POST.get('sku')
+        description = request.POST.get('description')
+        weight = request.POST.get('weight')
+        dimentions = request.POST.get('dimentions')
+        material = request.POST.get('material')
+        Production.objects.create(category_id=category,image=image,image2=image2,image3=image3,
+        image4=image4,image5=image5,name=name,quantity=quantity,sku=sku,description=description,
+        weight=weight,dimentions=dimentions,material=material)
+
+class CardView(APIView):
+    def get(request, pk):
+        card = Card.objects.get(user_id=pk)
+        ser = CardSerializer(card)
+        return Response(ser.data)
+    
+    def post(request):
+        try:
+            user = request.user
+            if user.type == 2:
+                product = request.POST.get('product')
+                quantity = int(request.POST.get('quantity'))
+                a = Card.objects.create(product=product,quantity=quantity,user=user)
+                ser = CardSerializer(a)
+                return Response(ser.data)
+        except Exception as err:
+            data = {
+                'error': f'{err}'
+            }
+            return Response(data)
+
+class Purchase(APIView):
+    def post(request, pk):
+        user = request.user
+        if user.type == 2:
+            card = Card.objects.get(user_id=pk)
+            pr = card.product.id
+            product = Product.objects.filter(id=pr)
+            if product.quantity == 0:
+                product.soldout = True
+                product.save()
+            product.quantity - card.quantity
+            product.save()
+            return Response()

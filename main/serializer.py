@@ -16,7 +16,10 @@ class NewsletterSerializer(serializers.ModelSerializer):
         model = Newsletter
         fields = '__all__'
 
-
+class CardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Card
+        fields = ['product', 'quantity']
 
 
 

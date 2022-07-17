@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
+from django.forms import IntegerField
 
 # Create your models here.
 
@@ -57,8 +58,8 @@ class Product(models.Model):
     quantity = models.IntegerField(default=0)
     product = models.ForeignKey(Production, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=15)
-    review = models.IntegerField(default=0)
-    discount = models.IntegerField(validators=[MaxValueValidator(100),MinValueValidator(0)])
+    review = models.IntegerField(default=0, null=True, blank=True)
+    discount_price = models.IntegerField(default=0,validators=[MaxValueValidator(100),MinValueValidator(0)])
     date =  models.DateField(auto_now_add=True)
     rating = models.FloatField(default=1,validators=[MaxValueValidator(5), MinValueValidator(1)])
 
@@ -108,6 +109,7 @@ class About(models.Model):
     image3 = models.ImageField(upload_to='about/', blank=True, null=True)
 
 class Card(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
 
