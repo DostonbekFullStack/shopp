@@ -120,17 +120,17 @@ class ProductionView(APIView):
                     b = prod.quantity + quantity
                     prod.quantity = b
                     prod.save()
-            else:
-                a = Production.objects.create(
-                image=image, image2=image2,image3=image3,
-                image4=image4, image5=image5,name=name,quantity=quantity,sku=sku,description=description,
-                weight=weight,dimentions=dimentions,material=material, colors=colors)
-                a.category.set(category)
-                a.save()
-                prod = Product.objects.create(production_id=i.id, price=price, discount_price=discount_price)
-                b = prod.quantity + quantity
-                prod.quantity = b
-                prod.save()
+                else:
+                    a = Production.objects.create(
+                    image=image, image2=image2,image3=image3,
+                    image4=image4, image5=image5,name=name,quantity=quantity,sku=sku,description=description,
+                    weight=weight,dimentions=dimentions,material=material, colors=colors)
+                    a.category.set(category)
+                    a.save()
+                    prod = Product.objects.create(production_id=i.id, price=price, discount_price=discount_price)
+                    b = prod.quantity + quantity
+                    prod.quantity = b
+                    prod.save()
             ser = ProductionSerializer(a)
             return Response(ser.data)
         except Exception as er:
