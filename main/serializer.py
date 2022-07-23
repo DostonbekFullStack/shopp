@@ -11,6 +11,12 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+class ProductionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Production
+        fields = '__all__'
+
+
 class NewsletterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Newsletter
@@ -20,6 +26,12 @@ class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
         fields = ['product', 'quantity']
+
+class PurchaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        depth = 1
+        model = Purchase
+        fields = '__all__'
 
 
 

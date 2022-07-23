@@ -1,3 +1,4 @@
+from pyexpat import model
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
@@ -56,7 +57,7 @@ class Production(models.Model):
 class Product(models.Model):
     soldout = models.BooleanField(default=False)
     quantity = models.IntegerField(default=0)
-    product = models.ForeignKey(Production, on_delete=models.CASCADE)
+    production = models.ForeignKey(Production, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=15)
     review = models.IntegerField(default=0, null=True, blank=True)
     discount_price = models.IntegerField(default=0,validators=[MaxValueValidator(100),MinValueValidator(0)])
@@ -64,7 +65,7 @@ class Product(models.Model):
     rating = models.FloatField(default=1,validators=[MaxValueValidator(5), MinValueValidator(1)])
 
     def __str__(self):
-        return self.product.name
+        return self.production.name
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -112,6 +113,10 @@ class Card(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
+
+class Purchase(models.Model):
+    card = models.ForeignKey(Card, on_delete=models.CASCADE)
+    summa = models.DecimalField(decimal_places=2,max_digits=15)
 
 class Wishlist(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
