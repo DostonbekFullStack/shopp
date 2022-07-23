@@ -111,7 +111,7 @@ class ProductionView(APIView):
             colors = request.POST.get('colors')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price')
-            z = Production.objects.all()
+            z = Production.objects.filter(name=name)
             if len(z)==0:
                 a = Production.objects.create(
                 image=image, image2=image2,image3=image3,
