@@ -5,7 +5,7 @@ from rest_framework.decorators import APIView
 from rest_framework.response import Response
 from .models import *
 from .serializer import *
-from django.core.exceptions import ObjectDoesNotExist
+from ipware import get_client_ip
 # Create your views here.
 
 class SliderGET(APIView):
@@ -111,7 +111,8 @@ class ProductionView(APIView):
             colors = request.POST.get('colors')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price')
-            z = Production.objects.filter(name=name)
+            z = Production.objects.filter(name=name, category=category, sku=sku, weight=weight,
+            dimentions=dimentions,colors=colors,material=material)
             if len(z)==0:
                 a = Production.objects.create(
                 image=image, image2=image2,image3=image3,
@@ -154,27 +155,119 @@ class ProductionView(APIView):
             return Response(data)
 
 class CardView(APIView):
-    def get(self, request, pk):
-        card = Card.objects.get(user_id=pk)
-        ser = CardSerializer(card)
-        return Response(ser.data)
-    
-    def post(self, request):
+    def get(self, request):
         try:
             user = request.user
             if user.type == 2:
-                product = request.POST.get('product')
-                quantity = int(request.POST.get('quantity'))
-                pro = Product.objects.get(id=product)
+                card = Card.objects.filter(user_id=user)
+                data = ["Card items"]
+                for i in card:
+                    Data = {
+                        "name": "",
+                        "price": 0,
+                        "quantity": 0,
+                        "discount": 0,
+                        "total price": 0,
+                    }
+                    Data['price'] = i.product.price
+                    Data['discount'] = i.product.discount_price
+                    g = i.product.price * i.product.discount_price/100
+                    Data['total price'] += i.quantity * (i.product.price - g)
+                    Data['name'] = i.product.production.name
+                    Data['quantity'] = i.quantity
+                    data.append(Data)
+            return Response(data)
+        except Exception as er:
+            data = {
+                'error':f"{er}"
+            }
+            return Response(data)
+    
+    def post(self, request):
+        try:
+            product = request.POST.get('product')
+            quantity = int(request.POST.get('quantity'))
+            pro = Product.objects.get(id=product)
+            user = request.user
+            if user.type == 2:
                 if pro.quantity < quantity:
                     return Response('quantity value error')
                 else:
-                    a = Card.objects.create(product_id=product,quantity=quantity,user=user)
+                    a = Card.objects.create(product_id=product,quantity=quantity,user=user, unauthorized=None)
                     ser = CardSerializer(a)
                     return Response(ser.data)
+            else:
+                return Response("you can't")
         except Exception as err:
             data = {
                 'error': f'{err}'
+            }
+            return Response(data)
+
+class UnauthorisedUserCardViews(APIView):
+    def get(self, request):
+        client_ip = get_client_ip(request)
+        card = Card.objects.filter(unauthorized=client_ip)
+        data = ["Card items"]
+        for i in card:
+            Data = {
+                "name": "",
+                "price": 0,
+                "quantity": 0,
+                "discount": 0,
+                "total price": 0,
+            }
+            Data['price'] = i.product.price
+            Data['discount'] = i.product.discount_price
+            g = i.product.price * i.product.discount_price/100
+            Data['total price'] += i.quantity * (i.product.price - g)
+            Data['name'] = i.product.production.name
+            Data['quantity'] = i.quantity
+            data.append(Data)
+        return Response(data)
+
+
+    def post(self, request):
+        try:
+            product = request.POST.get('product')
+            quantity = int(request.POST.get('quantity'))
+            client_ip = get_client_ip(request)
+            Data = {
+                "card": ()
+            }
+            if client_ip is None:
+                return Response("You can't do this action!!!")
+                # Unable to get the client's IP address
+            else:
+                a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
+                ser = CardSerializer(a)
+                Data['card'] = ser.data
+                # We got the client's IP address
+            return Response(Data)
+        except Exception as err:
+            data = {
+                'error': f'{err}'
+            }
+            return Response(data)
+
+class Purchaseitems(APIView):
+    def get(self, request):
+        try:
+            user = request.user
+            Data = {
+                "products": [],
+                "total": 0
+            }
+            if user.type == 2:
+                mycard = Card.objects.filter(user_id=user)
+                for i in mycard:
+                    Data['total'] += i.quantity * i.product.price
+                    ser = ProductSerializer(i.product)
+                    Data['products'].append(ser.data)
+            return Response(Data)
+        except Exception as er:
+            data = {
+                'error': f'{er}'
             }
             return Response(data)
 
@@ -183,6 +276,15 @@ class PurchaseView(APIView):
         try:
             user = request.user
             if user.type == 2:
+                mycard = Card.objects.filter(user_id=user)
+                Data = {
+                    "products": [],
+                    "total": 0
+                }
+                for i in mycard:
+                    Data['total'] += i.quantity * i.product.price
+                    ser = ProductSerializer(i.product)
+                    Data['products'].append(ser.data)
                 card = Card.objects.get(user_id=user)
                 pr = card.product.id
                 summa = int(request.POST.get('summa'))

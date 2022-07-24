@@ -110,7 +110,8 @@ class About(models.Model):
     image3 = models.ImageField(upload_to='about/', blank=True, null=True)
 
 class Card(models.Model):
-    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True)
+    unauthorized = models.GenericIPAddressField(null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
 
