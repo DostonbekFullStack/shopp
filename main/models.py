@@ -1,8 +1,6 @@
-from pyexpat import model
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import AbstractUser
-from django.forms import IntegerField
 
 # Create your models here.
 
@@ -59,7 +57,7 @@ class Product(models.Model):
     quantity = models.IntegerField(default=0)
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=15)
-    review = models.IntegerField(default=0, null=True, blank=True)
+    reviews = models.IntegerField(default=0, null=True, blank=True)
     discount_price = models.IntegerField(default=0,validators=[MaxValueValidator(100),MinValueValidator(0)])
     date =  models.DateField(auto_now_add=True)
     rating = models.FloatField(default=1,validators=[MaxValueValidator(5), MinValueValidator(1)])
@@ -68,7 +66,9 @@ class Product(models.Model):
         return self.production.name
 
 class Review(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    username = models.CharField(max_length=255)
     comment = models.TextField()
     date = models.DateField(auto_now_add=True)
     rating = models.FloatField(default=1,validators=[MaxValueValidator(5), MinValueValidator(1)])
@@ -114,6 +114,7 @@ class Card(models.Model):
     unauthorized = models.GenericIPAddressField(null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0)
+    time = models.DateField(auto_now_add=True)
 
 class Purchase(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE)

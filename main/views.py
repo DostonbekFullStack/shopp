@@ -1,12 +1,14 @@
-import sre_compile
-from urllib import request
-from django.shortcuts import render
 from rest_framework.decorators import APIView
 from rest_framework.response import Response
 from .models import *
 from .serializer import *
 from ipware import get_client_ip
-# Create your views here.
+
+class InfoGET(APIView):
+    def get(request):
+        info = Info.objects.last()
+        ser = InfoSerializer(info)
+        return Response(ser.data)
 
 class SliderGET(APIView):
     def get(request):
@@ -158,8 +160,28 @@ class CardView(APIView):
     def get(self, request):
         try:
             user = request.user
-            if user.type == 2:
-                card = Card.objects.filter(user_id=user)
+            if not user.is_anonymous:
+                if user.type == 2:
+                    card = Card.objects.filter(user_id=user)
+                    data = ["Card items"]
+                    for i in card:
+                        Data = {
+                            "name": "",
+                            "price": 0,
+                            "quantity": 0,
+                            "discount": 0,
+                            "total price": 0,
+                        }
+                        Data['price'] = i.product.price
+                        Data['discount'] = i.product.discount_price
+                        g = i.product.price * i.product.discount_price/100
+                        Data['total price'] += i.quantity * (i.product.price - g)
+                        Data['name'] = i.product.production.name
+                        Data['quantity'] = i.quantity
+                        data.append(Data)
+            else:
+                client_ip = get_client_ip(request)
+                card = Card.objects.filter(unauthorized=client_ip)
                 data = ["Card items"]
                 for i in card:
                     Data = {
@@ -185,72 +207,68 @@ class CardView(APIView):
     
     def post(self, request):
         try:
-            product = request.POST.get('product')
-            quantity = int(request.POST.get('quantity'))
-            pro = Product.objects.get(id=product)
             user = request.user
-            if user.type == 2:
-                if pro.quantity < quantity:
-                    return Response('quantity value error')
+            if not user.is_anonymous:
+                product = request.POST.get('product')
+                quantity = int(request.POST.get('quantity'))
+                pro = Product.objects.get(id=product)
+                user = request.user
+                if user.type == 2:
+                    if pro.quantity < quantity:
+                        return Response('quantity value error')
+                    else:
+                        a = Card.objects.create(product_id=product,quantity=quantity,user=user, unauthorized=None)
+                        ser = CardSerializer(a)
+                        return Response(ser.data)
                 else:
-                    a = Card.objects.create(product_id=product,quantity=quantity,user=user, unauthorized=None)
+                    return Response("you can't")
+            else:
+                product = request.POST.get('product')
+                quantity = int(request.POST.get('quantity'))
+                client_ip = get_client_ip(request)
+                Data = {
+                    "card": ()
+                }
+                if client_ip is None:
+                    return Response("You can't do this action!!!")
+                    # Unable to get the client's IP address
+                else:
+                    a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
                     ser = CardSerializer(a)
-                    return Response(ser.data)
-            else:
-                return Response("you can't")
+                    Data['card'] = ser.data
+                    # We got the client's IP address
+                return Response(Data)
         except Exception as err:
             data = {
                 'error': f'{err}'
             }
             return Response(data)
 
-class UnauthorisedUserCardViews(APIView):
-    def get(self, request):
-        client_ip = get_client_ip(request)
-        card = Card.objects.filter(unauthorized=client_ip)
-        data = ["Card items"]
-        for i in card:
-            Data = {
-                "name": "",
-                "price": 0,
-                "quantity": 0,
-                "discount": 0,
-                "total price": 0,
-            }
-            Data['price'] = i.product.price
-            Data['discount'] = i.product.discount_price
-            g = i.product.price * i.product.discount_price/100
-            Data['total price'] += i.quantity * (i.product.price - g)
-            Data['name'] = i.product.production.name
-            Data['quantity'] = i.quantity
-            data.append(Data)
-        return Response(data)
 
+    # def post(self, request):
+    #     try:
+    #         product = request.POST.get('product')
+    #         quantity = int(request.POST.get('quantity'))
+    #         client_ip = get_client_ip(request)
+    #         Data = {
+    #             "card": ()
+    #         }
+    #         if client_ip is None:
+    #             return Response("You can't do this action!!!")
+    #             # Unable to get the client's IP address
+    #         else:
+    #             a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
+    #             ser = CardSerializer(a)
+    #             Data['card'] = ser.data
+    #             # We got the client's IP address
+    #         return Response(Data)
+    #     except Exception as err:
+    #         data = {
+    #             'error': f'{err}'
+    #         }
+    #         return Response(data)
 
-    def post(self, request):
-        try:
-            product = request.POST.get('product')
-            quantity = int(request.POST.get('quantity'))
-            client_ip = get_client_ip(request)
-            Data = {
-                "card": ()
-            }
-            if client_ip is None:
-                return Response("You can't do this action!!!")
-                # Unable to get the client's IP address
-            else:
-                a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
-                ser = CardSerializer(a)
-                Data['card'] = ser.data
-                # We got the client's IP address
-            return Response(Data)
-        except Exception as err:
-            data = {
-                'error': f'{err}'
-            }
-            return Response(data)
-
-class Purchaseitems(APIView):
+class PurchaseView(APIView):
     def get(self, request):
         try:
             user = request.user
@@ -271,7 +289,6 @@ class Purchaseitems(APIView):
             }
             return Response(data)
 
-class PurchaseView(APIView):
     def post(self, request):
         try:
             user = request.user
@@ -306,6 +323,81 @@ class PurchaseView(APIView):
                         purchase = Purchase.objects.create(card_id=card.id, summa=summ)
                         ser = PurchaseSerializer(purchase)
                         return Response(ser.data)
+        except Exception as er:
+            data = {
+                'error': f"{er}"
+            }
+            return Response(data)
+
+class Reviewing(APIView):
+    def get(request,self,pk):
+        product = Review.objects.get(product_id=pk)
+        ser = ReviewSerializer(product)
+        return Response(ser.data)
+
+    def post(request, self, pk):
+        try:
+            user = request.user
+            if user.type == None:
+                client_ip = get_client_ip(request)
+                product = Product.objects.get(id=pk)
+                username = request.POST.get('username')
+                comment = request.POST.get('comment')
+                rating = request.POST.get('rating')
+                review = Review.objects.create(username=username, product_id=product,comment=comment,rating=rating)
+                ser = ReviewSerializer(review)
+                return Response(ser.data)
+            else:
+                product = Product.objects.get(id=pk)
+                comment = request.POST.get('comment')
+                rating = request.POST.get('rating')
+                review = Review.objects.create(username=user.name, product_id=product,comment=comment,rating=rating)
+                ser = ReviewSerializer(review)
+                return Response(ser.data)
+        except Exception as er:
+            data = {
+                'error': f"{er}"
+            }
+            return Response(data)
+
+class Contacting(APIView):
+    def get(request, self):
+        contact = Contact.objects.last()
+        ser = ContactSerializer(contact)
+        return Response(ser.data)
+
+class Bloging(APIView):
+    def get(request, self):
+        blog = Blog.objects.all()
+        ser = BlogSerializer(blog, many=True)
+        return Response(ser.data)
+
+class BlogingPK(APIView):
+    def get(request, self, pk):
+        blog = Blog.objects.get(id=pk)
+        ser = BlogSerializer(blog)
+        return Response(ser.data)
+
+class Abouting(APIView):
+    def get(request, self):
+        about = About.objects.all()
+        ser = AboutSerializer(about, many=True)
+        return Response(ser.data)
+
+class Replies(APIView):
+    def get(request, self, pk):
+        reply = Reply.objects.get(blog_id=pk)
+        ser = ReplySerializer(reply)
+        return Response(ser.data)
+
+    def post(request,self,pk):
+        try:
+            user = request.user
+            blog = Blog.objects.get(id=pk)
+            comment = request.POST.get('comment')
+            reply = Reply.objects.create(blog_id=blog,user=user,comment=comment)
+            ser = ReplySerializer(reply)
+            return Response(ser.data)
         except Exception as er:
             data = {
                 'error': f"{er}"
