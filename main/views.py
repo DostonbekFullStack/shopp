@@ -244,41 +244,25 @@ class CardView(APIView):
             }
             return Response(data)
 
-
-    # def post(self, request):
-    #     try:
-    #         product = request.POST.get('product')
-    #         quantity = int(request.POST.get('quantity'))
-    #         client_ip = get_client_ip(request)
-    #         Data = {
-    #             "card": ()
-    #         }
-    #         if client_ip is None:
-    #             return Response("You can't do this action!!!")
-    #             # Unable to get the client's IP address
-    #         else:
-    #             a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
-    #             ser = CardSerializer(a)
-    #             Data['card'] = ser.data
-    #             # We got the client's IP address
-    #         return Response(Data)
-    #     except Exception as err:
-    #         data = {
-    #             'error': f'{err}'
-    #         }
-    #         return Response(data)
-
 class PurchaseView(APIView):
     def get(self, request):
         try:
             user = request.user
+            client_ip = get_client_ip(request)
             Data = {
                 "products": [],
                 "total": 0
             }
-            if user.type == 2:
-                mycard = Card.objects.filter(user_id=user)
-                for i in mycard:
+            if not user.is_anonymous:
+                if user.type == 2:
+                    purchases = Purchase.objects.filter(card_user_id=user)
+                    for i in purchases:
+                        Data['total'] += i.quantity * i.product.price
+                        ser = ProductSerializer(i.product)
+                        Data['products'].append(ser.data)
+            else:
+                purchases = Purchase.objects.filter(card_unauthorized=client_ip)
+                for i in purchases:
                     Data['total'] += i.quantity * i.product.price
                     ser = ProductSerializer(i.product)
                     Data['products'].append(ser.data)

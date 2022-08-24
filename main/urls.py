@@ -14,7 +14,6 @@ urlpatterns = [
     path('purchase/', PurchaseView.as_view()),
     path('cardview/', CardView.as_view()),
 
-    # path('card/', UnauthorisedUserCardViews.as_view()),
     path('contact/', Contacting.as_view()),
     path('blog/', Bloging.as_view()),
     path('blog/<int:pk>', BlogingPK.as_view()),
