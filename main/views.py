@@ -1,5 +1,6 @@
 from rest_framework.decorators import APIView
 from rest_framework.response import Response
+from datetime import datetime
 from .models import *
 from .serializer import *
 from ipware import get_client_ip
@@ -37,7 +38,7 @@ class Search(APIView):
         return Response(ser.data)
 
 class Filter(APIView):
-    def post(self, request):
+    def get(self, request):
         firstprice = int(request.data['firstprice'])
         secondprice = int(request.data['secondprice'])
         product = Product.objects.filter(price__gte=firstprice, price__lte=secondprice)
@@ -45,23 +46,23 @@ class Filter(APIView):
         return Response(ser.data)
 
 class Instock(APIView):
-    def post(request):
+    def get(self, request):
+        Data = {'products':[]}
         product = Product.objects.all()
-        ser = ProductSerializer(product, many=True)
-        if len(product)>=5:
-            return Response(ser.data)
-        else:
-            return Response('No items in stock')
+        for i in product:
+            if i.quantity >=3:
+                ser = ProductSerializer(i)
+                Data['products'].append(ser.data)
+        return Response(Data)
 
 class Onsale(APIView):
-    def post(request):
+    def get(self, request):
         product = Product.objects.filter(soldout=False)
         ser = ProductSerializer(product, many=True)
         return Response(ser.data)
 
-
 class ProductPk(APIView):
-    def get(request, pk):
+    def get(self, request, pk):
         product = Product.objects.get(id=pk)
         ser = ProductSerializer(product)
         return Response(ser.data)
@@ -185,8 +186,36 @@ class ProductionView(APIView):
             }
             return Response(data)
 
+class Own(APIView):
+    def get(self, request):
+        card = Card.objects.all()
+        Data = {
+            'message': ''
+        }
+        for i in card:
+            print(i)
+            print(i.time)
+            print(datetime.now())
+            limit = i.time.is_naive() - datetime.now()
+            if limit < 72:
+                Data['message']=f"{limit}"
+            else:
+                i.delete()
+                Data['message']=f"{i} deleted"
+        return Response(Data)
+            
+
 class CardView(APIView):
     def get(self, request):
+        card = Card.objects.all()
+        for i in card:
+            print(i.time)
+            print(datetime.now())
+            limit = i.time - datetime.now()
+            if limit < 72:
+                pass
+            else:
+                i.delete()
         try:
             user = request.user
             if not user.is_anonymous:
@@ -443,43 +472,51 @@ class Reviewing(APIView):
 
 
 class Contacting(APIView):
-    def get(request, self):
+    def get(self, request):
         contact = Contact.objects.last()
         ser = ContactSerializer(contact)
         return Response(ser.data)
 
 class Bloging(APIView):
-    def get(request, self):
+    def get(self, request):
         blog = Blog.objects.all()
         ser = BlogSerializer(blog, many=True)
         return Response(ser.data)
 
 class BlogingPK(APIView):
-    def get(request, self, pk):
+    def get(self, request, pk):
         blog = Blog.objects.get(id=pk)
         ser = BlogSerializer(blog)
         return Response(ser.data)
 
 class Abouting(APIView):
-    def get(request, self):
+    def get(self, request):
         about = About.objects.all()
         ser = AboutSerializer(about, many=True)
         return Response(ser.data)
 
 class Replies(APIView):
-    def get(request, self, pk):
-        reply = Reply.objects.get(blog_id=pk)
-        ser = ReplySerializer(reply)
+    def get(self, request, pk):
+        reply = Reply.objects.filter(blog_id=pk)
+        ser = ReplySerializer(reply, many=True)
         return Response(ser.data)
 
-    def post(request,self,pk):
+    def post(self, request, pk):
         try:
             user = request.user
             blog = Blog.objects.get(id=pk)
+            client_ip = get_client_ip(request)
             comment = request.data['comment']
-            reply = Reply.objects.create(blog_id=blog,user=user,comment=comment)
-            ser = ReplySerializer(reply)
-            return Response(ser.data)
+            if not user.is_anonymous:
+                usernam = user.username
+                reply = Reply.objects.create(blog=blog,user=user,username=usernam, comment=comment)
+                ser = ReplySerializer(reply)
+                return Response(ser.data)
+            else:
+                username = request.data['username']
+                reply = Reply.objects.create(blog=blog,username=username,unauthorized=client_ip, comment=comment)
+                ser = ReplySerializer(reply)
+                return Response(ser.data)
         except Exception as er:
             data = {
                 'error': f"{er}"

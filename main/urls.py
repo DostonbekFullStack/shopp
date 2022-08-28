@@ -16,7 +16,7 @@ urlpatterns = [
 
     path('contact/', Contacting.as_view()),
     path('blog/', Bloging.as_view()),
-    path('blog/<int:pk>', BlogingPK.as_view()),
+    path('blog/<int:pk>/', BlogingPK.as_view()),
     path('newsletter/', NewletterPOST.as_view()),
     path('search/', Search.as_view()),
 
@@ -26,4 +26,5 @@ urlpatterns = [
 
     path('instock/', Instock.as_view()),
     path('onsale/', Onsale.as_view()),
+    path('own/', Own.as_view()),
 ]

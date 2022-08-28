@@ -95,7 +95,9 @@ class Blog(models.Model):
 
 class Reply(models.Model):
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    username = models.CharField(max_length=255)
+    unauthorized = models.GenericIPAddressField(blank=True,null=True)
     comment = models.TextField()
     date = models.DateField(auto_now_add=True)
 
@@ -114,7 +116,7 @@ class Card(models.Model):
     unauthorized = models.GenericIPAddressField(null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=0,validators=[MaxValueValidator(1000000),MinValueValidator(0)])
-    time = models.TimeField(auto_now_add=True)
+    time = models.DateTimeField(auto_now_add=True)
 
 class Purchase(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE)
