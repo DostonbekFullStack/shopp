@@ -40,7 +40,7 @@ class Production(models.Model):
     image4 = models.ImageField(upload_to='product/', null=True, blank=True)
     image5 = models.ImageField(upload_to='product/', null=True, blank=True)
     name = models.CharField(max_length=255)
-    quantity = models.IntegerField()
+    quantity = models.IntegerField(validators=[MaxValueValidator(1000000),MinValueValidator(0)])
     sku = models.IntegerField()
     description = models.TextField()
     weight = models.FloatField()
@@ -54,7 +54,7 @@ class Production(models.Model):
 
 class Product(models.Model):
     soldout = models.BooleanField(default=False)
-    quantity = models.IntegerField(default=0)
+    quantity = models.IntegerField(default=0,validators=[MaxValueValidator(1000000), MinValueValidator(0)])
     production = models.ForeignKey(Production, on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=15)
     reviews = models.IntegerField(default=0, null=True, blank=True)
@@ -85,13 +85,13 @@ class Blog(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)
     image = models.ImageField(upload_to='product/')
+    image2 = models.ImageField(upload_to='product/')
+    image3 = models.ImageField(upload_to='product/', null=True, blank=True)
     text = models.TextField()
     text2 =  models.TextField()
     text3 =  models.TextField(null=True, blank=True)
     text4 =  models.TextField(null=True, blank=True)
     category = models.ManyToManyField(Category)
-    image2 = models.ImageField(upload_to='product/')
-    image3 = models.ImageField(upload_to='product/', null=True, blank=True)
 
 class Reply(models.Model):
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE)
@@ -113,8 +113,8 @@ class Card(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True)
     unauthorized = models.GenericIPAddressField(null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField(default=0)
-    time = models.DateField(auto_now_add=True)
+    quantity = models.IntegerField(default=0,validators=[MaxValueValidator(1000000),MinValueValidator(0)])
+    time = models.TimeField(auto_now_add=True)
 
 class Purchase(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE)

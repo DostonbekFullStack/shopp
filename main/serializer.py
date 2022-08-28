@@ -18,6 +18,7 @@ class Cardproductserializer(serializers.ModelSerializer):
 
 class ProductionSerializer(serializers.ModelSerializer):
     class Meta:
+        depth = 1
         model = Production
         fields = '__all__'
 
