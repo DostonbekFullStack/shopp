@@ -119,6 +119,7 @@ class Card(models.Model):
 class Purchase(models.Model):
     card = models.ForeignKey(Card, on_delete=models.CASCADE)
     summa = models.DecimalField(decimal_places=2,max_digits=15)
+    cash = models.DecimalField(decimal_places=2,max_digits=15, null=True, blank=True)
 
 class Wishlist(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

@@ -216,13 +216,15 @@ class CardView(APIView):
                     Data = {
                         "name": "",
                         "price": 0,
-                        "quantity": 0,
+                        "price with discount": 0,
                         "discount": 0,
+                        "quantity": 0,
                         "total price": 0,
                     }
                     Data['price'] = i.product.price
                     Data['discount'] = i.product.discount_price
                     g = i.product.price * i.product.discount_price/100
+                    Data['price with discount'] = i.product.price - g
                     Data['total price'] += i.quantity * (i.product.price - g)
                     Data['name'] = i.product.production.name
                     Data['quantity'] = i.quantity
@@ -246,7 +248,7 @@ class CardView(APIView):
                     if pro.quantity < quantity:
                         return Response('quantity value error')
                     else:
-                        a = Card.objects.create(product_id=product,quantity=quantity,user=user, unauthorized=None)
+                        a = Card.objects.create(product_id=product,quantity=quantity, user=user, unauthorized=None)
                         ser = CardSerializer(a)
                         return Response(ser.data)
                 else:
@@ -254,6 +256,7 @@ class CardView(APIView):
             else:
                 product = request.data['product']
                 quantity = int(request.data['quantity'])
+                pro = Product.objects.get(id=product)
                 client_ip = get_client_ip(request)
                 Data = {
                     "card": ()
@@ -262,9 +265,12 @@ class CardView(APIView):
                     return Response("You can't do this action!!!")
                     # Unable to get the client's IP address
                 else:
-                    a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
-                    ser = CardSerializer(a)
-                    Data['card'] = ser.data
+                    if pro.quantity < quantity:
+                        return Response('quantity value error')
+                    else:
+                        a = Card.objects.create(product_id=product,quantity=quantity,unauthorized=client_ip)
+                        ser = CardSerializer(a)
+                        Data['card'] = ser.data
                     # We got the client's IP address
                 return Response(Data)
         except Exception as err:
@@ -286,14 +292,16 @@ class PurchaseView(APIView):
                 if user.type == 2:
                     purchases = Purchase.objects.filter(card_user_id=user)
                     for i in purchases:
-                        Data['total'] += i.quantity * i.product.price
-                        ser = ProductSerializer(i.product)
+                        g = i.card.product.price * i.card.product.discount_price/100
+                        Data['total'] += i.card.quantity * (i.card.product.price - g)
+                        ser = ProductSerializer(i.card.product)
                         Data['products'].append(ser.data)
             else:
-                purchases = Purchase.objects.filter(card_unauthorized=client_ip)
+                purchases = Purchase.objects.filter(card__unauthorized=client_ip)
                 for i in purchases:
-                    Data['total'] += i.card.quantity * i.product.price
-                    ser = ProductSerializer(i.product)
+                    g = i.card.product.price * i.card.product.discount_price/100
+                    Data['total'] += i.card.quantity * (i.card.product.price - g)
+                    ser = ProductSerializer(i.card.product)
                     Data['products'].append(ser.data)
             return Response(Data)
         except Exception as er:
@@ -314,7 +322,8 @@ class PurchaseView(APIView):
                 if user.type == 2:
                     mycard = Card.objects.filter(user_id=user)
                     for i in mycard:
-                        Data['total'] += i.quantity * i.product.price
+                        g = i.product.price * i.product.discount_price/100
+                        Data['total'] += i.quantity * (i.product.price - g)
                         ser = ProductSerializer(i.product)
                         Data['products'].append(ser.data)
                     card = Card.objects.get(user_id=user)
@@ -335,8 +344,10 @@ class PurchaseView(APIView):
                             a = product.quantity - card.quantity
                             product.quantity = a
                             product.save()
-                            purchase = Purchase.objects.create(card_id=card.id, summa=summ)
-                            card.id.delete()
+                            remain = summa - summ
+                            purchase = Purchase.objects.create(card_id=card.id, summa=summ, cash=remain)
+                            card.delete()
+
                             ser = PurchaseSerializer(purchase)
                             return Response(ser.data)
             else:
@@ -345,11 +356,12 @@ class PurchaseView(APIView):
                     Data['total'] += i.quantity * i.product.price
                     ser = ProductSerializer(i.product)
                     Data['products'].append(ser.data)
-                card = Card.objects.get(user_id=user)
+                card = Card.objects.get(unauthorized=client_ip)
                 pr = card.product.id
                 summa = int(request.data['summa'])
                 product = Product.objects.get(id=pr)
-                summ =  card.product.price * card.quantity
+                g = card.product.price * card.product.discount_price/100
+                summ =  (card.product.price - g) * card.quantity
                 if summa < summ:
                     return Response(f"you have to pay:{summ}")
                 else:
@@ -363,7 +375,9 @@ class PurchaseView(APIView):
                         a = product.quantity - card.quantity
                         product.quantity = a
                         product.save()
-                        purchase = Purchase.objects.create(card_id=card.id, summa=summ)
+                        remain = summa - summ
+                        purchase = Purchase.objects.create(card_id=card.id, summa=summ, cash=remain)
+                        card.delete()
                         ser = PurchaseSerializer(purchase)
                         return Response(ser.data)
         except Exception as er:

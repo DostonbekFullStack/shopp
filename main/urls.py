@@ -11,8 +11,8 @@ urlpatterns = [
     path('product/<int:pk>/', ProductView.as_view()), #post by production id
     path('productget/<int:pk>/', ProductPk.as_view()),
     path('production/', ProductionView.as_view()),
-    path('purchase/', PurchaseView.as_view()),
     path('cardview/', CardView.as_view()),
+    path('purchase/', PurchaseView.as_view()),
 
     path('contact/', Contacting.as_view()),
     path('blog/', Bloging.as_view()),
