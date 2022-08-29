@@ -116,7 +116,7 @@ class ProductionView(APIView):
         try:
             user = request.user
             if user.type == 1:
-                category = int(request.data['category'])
+                category = request.data['category']
                 image = request.FILES['image']
                 image2 = request.FILES['image2']
                 image3 = request.FILES['image3']
@@ -140,7 +140,7 @@ class ProductionView(APIView):
                     productions = Production.objects.all()
                     for qwe in productions:
                         for ids in qwe.category.all():
-                            if ids.id == category:
+                            if ids.id == int(category):
                                 if len(z)==0:
                                     a = Production.objects.create(
                                     image=image, image2=image2,image3=image3,
@@ -207,15 +207,15 @@ class Own(APIView):
 
 class CardView(APIView):
     def get(self, request):
-        card = Card.objects.all()
-        for i in card:
-            print(i.time)
-            print(datetime.now())
-            limit = i.time - datetime.now()
-            if limit < 72:
-                pass
-            else:
-                i.delete()
+        # card = Card.objects.all()
+        # for i in card:
+        #     print(i.time)
+        #     print(datetime.now())
+        #     limit = i.time - datetime.now()
+        #     if limit < 72:
+        #         pass
+        #     else:
+        #         i.delete()
         try:
             user = request.user
             if not user.is_anonymous:
@@ -314,24 +314,24 @@ class PurchaseView(APIView):
             user = request.user
             client_ip = get_client_ip(request)
             Data = {
-                "products": [],
+                "products you bought": [],
                 "total": 0
             }
             if not user.is_anonymous:
                 if user.type == 2:
-                    purchases = Purchase.objects.filter(card_user_id=user)
-                    for i in purchases:
-                        g = i.card.product.price * i.card.product.discount_price/100
-                        Data['total'] += i.card.quantity * (i.card.product.price - g)
-                        ser = ProductSerializer(i.card.product)
-                        Data['products'].append(ser.data)
+                    orders = Order.objects.filter(user_id=user)
+                    for i in orders:
+                        g = i.product.price * i.product.discount_price/100
+                        Data['total'] += i.quantity * (i.product.price - g)
+                        ser = OrderSerializer(i)
+                        Data['products you bought'].append(ser.data)
             else:
-                purchases = Purchase.objects.filter(card__unauthorized=client_ip)
-                for i in purchases:
-                    g = i.card.product.price * i.card.product.discount_price/100
-                    Data['total'] += i.card.quantity * (i.card.product.price - g)
-                    ser = ProductSerializer(i.card.product)
-                    Data['products'].append(ser.data)
+                orders = Order.objects.filter(unauthorized=client_ip)
+                for i in orders:
+                    g = i.product.price * i.product.discount_price/100
+                    Data['total'] += i.quantity * (i.product.price - g)
+                    ser = OrderSerializer(i)
+                    Data['products you bought'].append(ser.data)
             return Response(Data)
         except Exception as er:
             data = {
@@ -375,8 +375,8 @@ class PurchaseView(APIView):
                             product.save()
                             remain = summa - summ
                             purchase = Purchase.objects.create(card_id=card.id, summa=summ, cash=remain)
+                            Order.objects.create(product=card.product, quantcardty=card.quantity, user=card.user)
                             card.delete()
-
                             ser = PurchaseSerializer(purchase)
                             return Response(ser.data)
             else:
@@ -406,6 +406,7 @@ class PurchaseView(APIView):
                         product.save()
                         remain = summa - summ
                         purchase = Purchase.objects.create(card_id=card.id, summa=summ, cash=remain)
+                        Order.objects.create(product=card.product, quantity=card.quantity, unauthorized=card.unauthorized)
                         card.delete()
                         ser = PurchaseSerializer(purchase)
                         return Response(ser.data)

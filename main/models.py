@@ -115,11 +115,11 @@ class Card(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True)
     unauthorized = models.GenericIPAddressField(null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField(default=0,validators=[MaxValueValidator(1000000),MinValueValidator(0)])
+    quantity = models.IntegerField(default=0)
     time = models.DateTimeField(auto_now_add=True)
 
 class Purchase(models.Model):
-    card = models.ForeignKey(Card, on_delete=models.CASCADE)
+    card = models.ForeignKey("Card", on_delete=models.CASCADE)
     summa = models.DecimalField(decimal_places=2,max_digits=15)
     cash = models.DecimalField(decimal_places=2,max_digits=15, null=True, blank=True)
 
@@ -154,4 +154,9 @@ class Checkout(models.Model):
     shiptootherplace = models.CharField(max_length=255,null=True,blank=True)
     ordernotes = models.TextField()
 
-    
+class Order(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity =  models.IntegerField(default=0)
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True)
+    unauthorized = models.GenericIPAddressField(null=True, blank=True)
+    time = models.DateTimeField(auto_now_add=True)
