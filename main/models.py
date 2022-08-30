@@ -10,7 +10,6 @@ class User(AbstractUser):
         (2, 'client'),
     ), default=2)
     phone = models.IntegerField(blank=True, null=True)
-    cash = models.DecimalField(decimal_places=2, max_digits=15)
 
     def __str__(self):
         return self.username
