@@ -1,9 +1,22 @@
+from email import message
 from rest_framework.decorators import APIView
 from rest_framework.response import Response
 from datetime import datetime
 from .models import *
 from .serializer import *
 from ipware import get_client_ip
+import logging
+from aiogram import Bot, Dispatcher, executor, types
+
+API_TOKEN = '5727327341:AAFA7VwkcI8Ps91WcUg5XGY_lWWG6k8GMEg'
+admin = '1140953512'
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Initialize bot and dispatcher
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
 
 class InfoGET(APIView):
     def get(self, request):
@@ -308,6 +321,9 @@ class CardView(APIView):
             }
             return Response(data)
 
+async def send_message(self, request):
+    await message.answer(message.text)
+
 class PurchaseView(APIView):
     def get(self, request):
         try:
@@ -375,9 +391,14 @@ class PurchaseView(APIView):
                             product.save()
                             remain = summa - summ
                             purchase = Purchase.objects.create(card_id=card.id, summa=summ, cash=remain)
-                            Order.objects.create(product=card.product, quantcardty=card.quantity, user=card.user)
+                            order = Order.objects.create(product=card.product, quantcardty=card.quantity, user=card.user)
+                            orders = []
+                            for i in order:
+                                orders.append(i)
+                            mymessage = f"Username: {user.username}, order: {orders}, summa: {summ}"
                             card.delete()
                             ser = PurchaseSerializer(purchase)
+                            send_message()
                             return Response(ser.data)
             else:
                 mycard = Card.objects.filter(unauthorized=client_ip)
